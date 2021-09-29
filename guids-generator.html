@@ -535,6 +535,39 @@ require(["bcrypt", "jsencrypt"], function(bcrypt, jsencrypt) {
 
                     p += 4;
                 }
+                console.log("BcryptBase64 decoded: ");
+                console.log(output);
+                // BEGIN CHECK
+                // Port of bcrypt.cc::encode_base64
+                const encode_base64 = (data, len) => {
+                    const Base64Code = "./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+                    let p = 0;
+                    let output = "";
+                    while (p < len) {
+                        let c1 = data[p++];
+                        output += Base64Code[(c1 >> 2)];
+                        c1 = (c1 & 0x03) << 4;
+                        if (p >= len) {
+                            output += Base64Code[c1];
+                            break;
+                        }
+                        let c2 = data[p++];
+                        c1 |= (c2 >> 4) & 0x0f;
+                        output += Base64Code[c1];
+                        c1 = (c2 & 0x0f) << 2;
+                        if (p >= len) {
+                            output += Base64Code[c1];
+                            break;
+                        }
+                        c2 = data[p++];
+                        c1 |= (c2 >> 6) & 0x03;
+                        output += Base64Code[c1];
+                        output += Base64Code[c2 & 0x3f];
+                    }
+                    return output;
+                };
+                console.log("Round-trip, base64 re-encoded to: " + encode_base64(output, 23));
+                // END CHECK
                 return Uint8Array.from(output);
             };
 
@@ -551,6 +584,7 @@ require(["bcrypt", "jsencrypt"], function(bcrypt, jsencrypt) {
                      void bcrypt(const char *key, size_t key_len, const char *salt, char *encrypted)
                      method from https://github.com/kelektiv/node.bcrypt.js -- src/bcrypt.cc
                     */
+                    console.log("Working with: " + hash.slice(-31));
                     let hashBytes = decode_bcrypt_base64(hash.slice(-31), 23);
                     callback(undefined, hashBytes);
                 }
